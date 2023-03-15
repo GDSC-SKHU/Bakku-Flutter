@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-const webUrl = 'https://bakku-web.web.app/';
+const webUrl = 'https://bakku-web.web.app';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  
   runApp(
     MaterialApp(
       theme: ThemeData(useMaterial3: true),
@@ -26,6 +29,17 @@ class _WebViewAppState extends State<WebViewApp> {
   void initState() {
     super.initState();
     controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(NavigationDelegate(
+        onNavigationRequest: (request) {
+          if (request.url.startsWith(webUrl)) {
+            return NavigationDecision.navigate;
+          } else {
+            _launchURL(request.url as Uri);
+            return NavigationDecision.prevent;
+          }
+        },
+      ))
       ..loadRequest(
         Uri.parse(webUrl),
       );
@@ -34,14 +48,19 @@ class _WebViewAppState extends State<WebViewApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text('Flutter WebView'),
-      // ),
       body: SafeArea(
         child: WebViewWidget(
           controller: controller,
         ),
       ),
     );
+  }
+
+  _launchURL(Uri url) async {
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 }
